@@ -87,7 +87,9 @@ public class FinancialService {
     }
 
     private static void writeChuckToFile(List<FinancialOrderRecord> chunk, File currentOutputFile) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
-        log.info("Writing {} records into the financial output file {}", chunk.size(), currentOutputFile);
+        final List<FinancialOrderRecord> records = chunk.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
+        log.info("Writing {} records into the financial output file {}", records.size(), currentOutputFile);
 
         final String[] columns = {"order_id", "product_name", "product_id", "quantity", "product_price", "order_total", "order_paid_amount", "currency_code"};
 
@@ -112,8 +114,6 @@ public class FinancialService {
                     .withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
                     .withMappingStrategy(mappingStrategy)
                     .build();
-
-            final List<FinancialOrderRecord> records = chunk.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
             beanWriter.write(records);
 
