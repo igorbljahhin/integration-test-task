@@ -71,7 +71,9 @@ class FinancialServiceTest {
 
         // let's sleep a bit, otherwise the files will have same name
         try {
-            Thread.sleep(1000);
+            // we sleep 1 minute, because the pattern for the file name from task requirements
+            // does not include seconds, so we should wait maximum 1 minute into the order to get a new file name for the output file
+            Thread.sleep(60000);
         } catch (InterruptedException ignore) {
         }
 

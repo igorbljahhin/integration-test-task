@@ -7,6 +7,9 @@ import com.opencsv.CSVWriter;
 import com.opencsv.bean.ColumnPositionMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +24,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -37,6 +40,16 @@ import static java.util.Optional.ofNullable;
 public class FinancialService {
 
     private final AppConfig appConfig;
+
+    private static int countLines(File file) throws IOException {
+        if (file.exists()) {
+            try (Stream<String> lines = Files.lines(Paths.get(file.getAbsolutePath()))) {
+                return (int) lines.count() - 1;
+            }
+        } else {
+            return 0;
+        }
+    }
 
     private static Collection<FinancialOrderRecord> fromOrder(Order order) {
         return ofNullable(order.getOrderItems()).orElse(List.of()).stream()
@@ -52,6 +65,60 @@ public class FinancialService {
                         .build()
                 )
                 .collect(Collectors.toList());
+    }
+
+    private static File getRecentlyModifiedFile(@NotEmpty String outputDirectory, @NotEmpty String fileNamePattern) {
+        final File[] files = new File(outputDirectory).listFiles();
+
+        return Arrays.stream(files != null ? files : new File[0])
+                .filter(File::isFile)
+                .filter(file -> {
+                    final String extension = StringUtils.substringAfterLast(fileNamePattern, ".");
+
+                    return StringUtils.equalsIgnoreCase(FilenameUtils.getExtension(file.getName()), extension);
+                })
+                .filter(file -> {
+                    final String outputFileNamePrefix = StringUtils.substringBefore(fileNamePattern, "{");
+
+                    return StringUtils.startsWithIgnoreCase(file.getName(), outputFileNamePrefix);
+                })
+                .max(Comparator.comparingLong(File::lastModified))
+                .orElse(null);
+    }
+
+    private static void writeChuckToFile(List<FinancialOrderRecord> chunk, File currentOutputFile) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
+        log.info("Writing {} records into the financial output file {}", chunk.size(), currentOutputFile);
+
+        final String[] columns = {"order_id", "product_name", "product_id", "quantity", "product_price", "order_total", "order_paid_amount", "currency_code"};
+
+        final boolean isNewFile = !currentOutputFile.exists();
+
+        if (isNewFile) {
+            // write header if it's a new file
+            try (FileWriter fileWriter = new FileWriter(currentOutputFile)) {
+                final CSVWriter csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
+                csvWriter.writeNext(columns);
+                csvWriter.close();
+            }
+        }
+
+        final ColumnPositionMappingStrategy<FinancialOrderRecord> mappingStrategy = new ColumnPositionMappingStrategy<>();
+        mappingStrategy.setType(FinancialOrderRecord.class);
+        mappingStrategy.setColumnMapping(columns);
+
+        // reopen the writer for appending the data
+        try (FileWriter dataWriter = new FileWriter(currentOutputFile, true)) {
+            final StatefulBeanToCsv<FinancialOrderRecord> beanWriter = new StatefulBeanToCsvBuilder<FinancialOrderRecord>(dataWriter)
+                    .withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
+                    .withMappingStrategy(mappingStrategy)
+                    .build();
+
+            final List<FinancialOrderRecord> records = chunk.stream().filter(Objects::nonNull).collect(Collectors.toList());
+
+            beanWriter.write(records);
+
+            dataWriter.flush();
+        }
     }
 
     private void ensureOutputDirectoryExistsAndValidate() {
@@ -89,101 +156,91 @@ public class FinancialService {
         return fileNamePattern;
     }
 
-    @SneakyThrows
-    public void writeOrderToFile(final Order order) {
-        ensureOutputDirectoryExistsAndValidate();
-
+    private String getCurrentFileName() {
         // find latest modified file in output directory
-        final File[] files = new File(appConfig.getFinancial().getOutputDirectory()).listFiles();
-
-        final File latestModifiedFile = Arrays.stream(files != null ? files : new File[0])
-                .filter(File::isFile)
-                .filter(file -> {
-                    final String extension = StringUtils.substringAfterLast(appConfig.getFinancial().getFileNamePattern(), ".");
-
-                    return StringUtils.equalsIgnoreCase(FilenameUtils.getExtension(file.getName()), extension);
-                })
-                .filter(file -> {
-                    final String outputFileNamePrefix = StringUtils.substringBefore(appConfig.getFinancial().getFileNamePattern(), "{");
-
-                    return StringUtils.startsWithIgnoreCase(file.getName(), outputFileNamePrefix);
-                })
-                .max(Comparator.comparingLong(File::lastModified))
-                .orElse(null);
+        final File recentlyModifiedFile = getRecentlyModifiedFile(appConfig.getFinancial().getOutputDirectory(), appConfig.getFinancial().getFileNamePattern());
 
         String currentFileName;
-        AtomicInteger currentRecordCount = new AtomicInteger(0);
 
-        if (latestModifiedFile != null) {
-            currentFileName = latestModifiedFile.getName();
+        if (recentlyModifiedFile != null) {
+            currentFileName = recentlyModifiedFile.getName();
 
-            try {
-                try (Stream<String> lines = Files.lines(Paths.get(latestModifiedFile.getAbsolutePath()))) {
-                    currentRecordCount.set((int) lines.count() - 1 /* ignore header */);
-                }
-
-                log.info("Latest modified file in the financial output directory is {}, the number of lines is {}", latestModifiedFile, currentRecordCount.get());
-            } catch (IOException e) {
-                currentFileName = generateOutputFileName();
-
-                log.error("Failed to count the number of lines in financial output file {}. Writing into the new financial output file {}", latestModifiedFile.getAbsolutePath(), currentFileName, e);
-            }
+            log.info("Attempt to continue writing into recently modified financial output file {}", currentFileName);
         } else {
             currentFileName = generateOutputFileName();
 
             log.info("Writing into the new financial output file {}", currentFileName);
         }
 
-        // verify, if we need to generate a new output file
-        if (currentRecordCount.get() >= appConfig.getFinancial().getMaxRecordsPerFile()) {
-            log.info("Limit of the lines is reached in the file {}, let's start using a new file", currentFileName);
+        return currentFileName;
+    }
 
+    private File resolveOutputFile() {
+        String currentFileName = getCurrentFileName();
+
+        int lines = 0;
+
+        try {
+            final File f = new File(appConfig.getFinancial().getOutputDirectory(), currentFileName);
+
+            if (f.exists()) {
+                lines = countLines(f);
+
+                log.info("The financial output file {} has {} lines", currentFileName, lines);
+            }
+        } catch (IOException e) {
             currentFileName = generateOutputFileName();
-            currentRecordCount.set(0);
+
+            log.error("Failed to count the number of lines in previous financial output file. Writing into the new financial output file {}", currentFileName, e);
         }
 
+        if (lines >= appConfig.getFinancial().getMaxRecordsPerFile()) {
+            final String previousFileName = currentFileName;
+
+            currentFileName = generateOutputFileName();
+
+            if (previousFileName.equals(currentFileName)) {
+                final String msg = MessageFormat.format("Cannot continue to write orders into the financial files," +
+                        " because the limit of the records in the file {0} is reached its limit of {1} records and the " +
+                        "rules for file naming are not allowing us to generate a unique file name. " +
+                        "Consider to include seconds into the pattern of the filename (controlled by configuration property " +
+                        "app.financial.file-name-pattern) or repeat the operation a bit later.", previousFileName, appConfig.getFinancial().getMaxRecordsPerFile());
+
+                log.error(msg);
+
+                throw new IllegalStateException(msg);
+            } else {
+                log.info("Limit of the lines is reached in the file {}, let's start using a new file {}", previousFileName, currentFileName);
+            }
+        }
+
+        return new File(appConfig.getFinancial().getOutputDirectory(), currentFileName);
+    }
+
+    @SneakyThrows
+    public void writeOrderToFile(final Order order) {
+        ensureOutputDirectoryExistsAndValidate();
+
+        // resolve current output file and verify its size
+        File currentOutputFile = resolveOutputFile();
+
         // generate records for CSV from orders
+        // NB! reserve space for same amount of records as in existing output file
         final List<FinancialOrderRecord> orderRecords = new ArrayList<>();
-        orderRecords.addAll(IntStream.range(0, currentRecordCount.get()).mapToObj(i -> (FinancialOrderRecord) null).toList()); // reserve space for same amount of records as in existing output file
+        orderRecords.addAll(IntStream.range(0, countLines(currentOutputFile)).mapToObj(i -> (FinancialOrderRecord) null).toList());
         orderRecords.addAll(fromOrder(order));
 
         // split all records into chunks by appConfig.getFinancial().getMaxRecordsPerFile()
         final List<List<FinancialOrderRecord>> chunks = ListUtils.partition(orderRecords, appConfig.getFinancial().getMaxRecordsPerFile());
 
-        for (List<FinancialOrderRecord> chunk : chunks) {
-            final File file = new File(appConfig.getFinancial().getOutputDirectory(), currentFileName);
+        for (Iterator<List<FinancialOrderRecord>> iterator = chunks.iterator(); iterator.hasNext(); ) {
+            final List<FinancialOrderRecord> chunk = iterator.next();
 
-            log.info("Writing {} records into the financial output file {}", chunk.size(), file);
+            writeChuckToFile(chunk, currentOutputFile);
 
-            final String[] columns = {"order_id", "product_name", "product_id", "quantity", "product_price", "order_total", "order_paid_amount", "currency_code"};
-
-            final boolean isNewFile = !file.exists();
-
-            if (isNewFile) {
-                // write header if it's a new file
-                try (FileWriter fileWriter = new FileWriter(file)) {
-                    final CSVWriter csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER, CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.DEFAULT_LINE_END);
-                    csvWriter.writeNext(columns);
-                    csvWriter.close();
-                }
-            }
-
-            final ColumnPositionMappingStrategy<FinancialOrderRecord> mappingStrategy = new ColumnPositionMappingStrategy<>();
-            mappingStrategy.setType(FinancialOrderRecord.class);
-            mappingStrategy.setColumnMapping(columns);
-
-            // reopen the writer for appending the data
-            try (FileWriter dataWriter = new FileWriter(file, true)) {
-                final StatefulBeanToCsv<FinancialOrderRecord> beanWriter = new StatefulBeanToCsvBuilder<FinancialOrderRecord>(dataWriter)
-                        .withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
-                        .withMappingStrategy(mappingStrategy)
-                        .build();
-
-                final List<FinancialOrderRecord> records = chunk.stream().filter(Objects::nonNull).collect(Collectors.toList());
-
-                beanWriter.write(records);
-
-                dataWriter.flush();
+            if (iterator.hasNext()) {
+                // next chunk should be writen into a new file (but we want to make sure, that new file does not overlap with existing file)
+                currentOutputFile = resolveOutputFile();
             }
         }
     }
