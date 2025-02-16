@@ -1,0 +1,20 @@
+version: "3.2"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./rabbitmq/rabbitmq-setup.sh:/rabbitmq-setup.sh
+      - ./rabbitmq/order_created_messages.json:/rabbitmq-messages/order_created_messages.json
+    command: sh -c "apk add --no-cache jq && /rabbitmq-setup.sh & docker-entrypoint.sh rabbitmq-server"
+
+  mock-crm:
+    image: stoplight/prism:latest
+    ports:
+      - "4010:4010"
+    volumes:
+      - ./crm-api/src/main/resources/CRM_Swagger_Definition.yaml:/tmp/api.yaml
+    command: "mock -h 0.0.0.0 /tmp/api.yaml"

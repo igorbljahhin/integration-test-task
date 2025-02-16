@@ -1,0 +1,104 @@
+openapi: 3.0.1
+info:
+  title: CRM API
+  version: 1.0.0
+  description: API for handling customer orders from the e-commerce platform.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /customers/{customerId}/orders:
+    put:
+      summary: Update customer order
+      description: Updates the order status and financial details for a specific customer.
+      operationId: updateCustomerOrder
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderUpdateRequest'
+      responses:
+        "200":
+          description: Order updated successfully.
+        "400":
+          description: Invalid request payload.
+        "404":
+          description: Customer not found.
+        "500":
+          description: Internal server error.
+
+components:
+  schemas:
+    OrderUpdateRequest:
+      type: object
+      properties:
+        externalOrderId:
+          type: string
+          description: Unique identifier of the order from the e-commerce platform.
+        status:
+          type: string
+          enum: [pending, confirmed, paid, shipped]
+          description: Current status of the order.
+        financials:
+          type: object
+          properties:
+            orderTotal:
+              type: number
+              format: float
+              description: Total amount for the order.
+            orderPaid:
+              type: number
+              format: float
+              description: Amount paid for the order.
+            currencyCode:
+              type: string
+              example: "EUR"
+              description: Currency code for the order payment.
+          required:
+            - orderTotal
+            - orderPaid
+            - currencyCode
+        items:
+          type: array
+          description: List of items in the order.
+          items:
+            type: object
+            properties:
+              product:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Unique identifier of the product.
+                  name:
+                    type: string
+                    description: Name of the product.
+                required:
+                  - id
+                  - name
+              quantity:
+                type: integer
+                description: Quantity of the product ordered.
+              price:
+                type: number
+                format: float
+                description: Price of the product.
+            required:
+              - product
+              - quantity
+              - price
+      required:
+        - externalOrderId
+        - status
+        - financials
+        - items

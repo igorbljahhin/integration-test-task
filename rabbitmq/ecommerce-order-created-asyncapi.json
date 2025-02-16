@@ -1,0 +1,125 @@
+{
+    "asyncapi": "2.6.0",
+    "info": {
+      "title": "Order API",
+      "version": "1.0.0",
+      "description": "API for processing order events via RabbitMQ."
+    },
+    "servers": {
+      "rabbitmq": {
+        "url": "amqp://localhost:5672",
+        "protocol": "amqp",
+        "description": "RabbitMQ server connection"
+      }
+    },
+    "channels": {
+      "orderCreated": {
+        "description": "Channel for new order created messages",
+        "publish": {
+          "summary": "Publish order created event",
+          "operationId": "publishOrderCreated",
+          "message": {
+            "$ref": "#/components/messages/orderCreatedMessage"
+          }
+        }
+      }
+    },
+    "components": {
+      "messages": {
+        "orderCreatedMessage": {
+          "payload": {
+            "type": "object",
+             "title": "orderCreatedMessage",
+            "properties": {
+              "orderId": {
+                "type": "string",
+                "description": "Unique identifier for the order"
+              },
+              "customerId": {
+                "type": "string",
+                "description": "Unique identifier for the customer"
+              },
+              "creationTimestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp when the order was created"
+              },
+              "updatedTimestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp when the order was last updated"
+              },
+              "status": {
+                "type": "string",
+                "title": "orderStatus",
+                "enum": [
+                  "pending",
+                  "updated",
+                  "confirmed",
+                  "paid",
+                  "shipped",
+                  "cancelled"
+                ],
+                "default": "pending",
+                "description": "Current status of the order"
+              },
+              "orderTotal": {
+                "type": "number",
+                "description": "Total amount for the order"
+              },
+              "orderPaid": {
+                "type": "number",
+                "description": "Amount paid for the order"
+              },
+              "currencyCode": {
+                "type": "string",
+                "description": "Currency code"
+              },
+              "orderItems": {
+                "type": "array",
+                "description": "List of items in the order",
+                "items": {
+                  "type": "object",
+                  "title": "orderItem",
+                  "properties": {
+                    "productId": {
+                      "type": "string",
+                      "description": "Unique identifier for the product"
+                    },
+                    "productName": {
+                      "type": "string",
+                      "description": "Name of the product"
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "description": "Quantity of the product ordered"
+                    },
+                    "price": {
+                      "type": "number",
+                      "description": "Price of the product"
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "productName",
+                    "quantity",
+                    "price"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "orderId",
+              "customerId",
+              "creationTimestamp",
+              "updatedTimestamp",
+              "status",
+              "orderTotal",
+              "orderItems"
+            ]
+          }
+        }
+      }
+    }
+  }
+  

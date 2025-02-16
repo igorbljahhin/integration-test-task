@@ -1,0 +1,24 @@
+# rabbitMQ connection
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+app:
+  # CRM service configuration
+  crm:
+    api-url: http://localhost:4010
+
+  # financial system output directory
+  financial:
+    output-directory: ./financial-output
+    max-records-per-file: 1000
+    file-name-pattern: fin_orders_{datetime:ddMMyyyyHHmm}.csv
+
+# logging
+logging:
+  level:
+    com.example.ecommerceorderprocessor: DEBUG
+    org.springframework.integration: INFO
