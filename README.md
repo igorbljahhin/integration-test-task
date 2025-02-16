@@ -20,8 +20,8 @@ cd integration-test-task
 ### 2. Configure the Application
 
 The application uses the following configuration files:
-- `src/main/resources/application-dev.yml` - Development configuration
-- `src/main/resources/application-prod.yml` - Production configuration (create if needed)
+- `core/src/main/resources/application-dev.yml` - Development configuration
+- `core/src/main/resources/application-prod.yml` - Production configuration (create if needed)
 
 Default configuration values can be overridden using environment variables:
 ```bash
@@ -55,12 +55,12 @@ mvn clean package
 
 Development mode:
 ```bash
-java -jar target/ecommerce-order-processor.jar --spring.profiles.active=dev
+java -jar core/target/integration-test-task.jar
 ```
 
 Production mode:
 ```bash
-java -jar target/ecommerce-order-processor.jar --spring.profiles.active=prod
+java -jar core/target/integration-test-task.jar --spring.profiles.active=prod
 ```
 
 ## Testing
@@ -71,12 +71,6 @@ Run unit tests:
 ```bash
 mvn test
 ```
-
-Run tests with coverage report:
-```bash
-mvn test jacoco:report
-```
-Coverage report will be available at: `target/site/jacoco/index.html`
 
 ### Integration Tests
 
