@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 
@@ -95,7 +96,7 @@ public class FinancialService {
         // find latest modified file in output directory
         final File[] files = new File(appConfig.getFinancial().getOutputDirectory()).listFiles();
 
-        final File latestModifiedFile = Arrays.stream(files)
+        final File latestModifiedFile = Arrays.stream(files != null ? files : new File[0])
                 .filter(File::isFile)
                 .filter(file -> {
                     final String extension = StringUtils.substringAfterLast(appConfig.getFinancial().getFileNamePattern(), ".");
@@ -119,7 +120,9 @@ public class FinancialService {
             currentFileName = latestModifiedFile.getName();
 
             try {
-                currentRecordCount.set((int) Files.lines(Paths.get(latestModifiedFile.getAbsolutePath())).count() - 1 /* ignore header */);
+                try (Stream<String> lines = Files.lines(Paths.get(latestModifiedFile.getAbsolutePath()))) {
+                    currentRecordCount.set((int) lines.count() - 1 /* ignore header */);
+                }
             } catch (IOException e) {
                 currentFileName = generateOutputFileName();
 
