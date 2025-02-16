@@ -81,7 +81,7 @@ docker-compose up -d
 
 2. Run integration tests:
 ```bash
-mvn verify -P integration-test
+mvn verify
 ```
 
 ### Manual Testing
