@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class CrmService {
 
     private final AppConfig appConfig;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     private OrderUpdateRequestItemsInner convertOrderItem(final OrderItem orderItem) {
         // convert OrderItem to CRM Product

@@ -115,14 +115,14 @@ public class FinancialService {
         AtomicInteger currentRecordCount = new AtomicInteger(0);
 
         if (latestModifiedFile != null) {
-            log.info("Latest modified file in the financial output directory is {}, let's verify the number of lines...", latestModifiedFile);
-
             currentFileName = latestModifiedFile.getName();
 
             try {
                 try (Stream<String> lines = Files.lines(Paths.get(latestModifiedFile.getAbsolutePath()))) {
                     currentRecordCount.set((int) lines.count() - 1 /* ignore header */);
                 }
+
+                log.info("Latest modified file in the financial output directory is {}, the number of lines is {}", latestModifiedFile, currentRecordCount.get());
             } catch (IOException e) {
                 currentFileName = generateOutputFileName();
 
@@ -135,8 +135,11 @@ public class FinancialService {
         }
 
         // verify, if we need to generate a new output file
-        if (currentFileName == null || currentRecordCount.get() >= appConfig.getFinancial().getMaxRecordsPerFile()) {
+        if (currentRecordCount.get() >= appConfig.getFinancial().getMaxRecordsPerFile()) {
+            log.info("Limit of the lines is reached in the file {}, let's start using a new file", currentFileName);
+
             currentFileName = generateOutputFileName();
+            currentRecordCount.set(0);
         }
 
         // generate records for CSV from orders
