@@ -13,7 +13,7 @@ This application processes orders from an e-commerce platform and distributes th
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/igorbljahhin/integration-test-task.git
 cd integration-test-task
 ```
 
