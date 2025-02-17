@@ -47,7 +47,7 @@ components:
           description: Unique identifier of the order from the e-commerce platform.
         status:
           type: string
-          enum: [pending, confirmed, paid, shipped]
+          enum: [pending, confirmed, paid, shipped, cancelled]
           description: Current status of the order.
         financials:
           type: object
