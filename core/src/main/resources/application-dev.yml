@@ -15,7 +15,7 @@ app:
   financial:
     output-directory: ./financial-output
     max-records-per-file: 1000
-    file-name-pattern: fin_orders_{datetime:ddMMyyyyHHmm}.csv
+    file-name-pattern: fin_orders_{datetime:ddMMyyyyHHmmss}.csv
 
 # logging
 logging:

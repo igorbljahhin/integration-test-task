@@ -37,7 +37,7 @@ class FinancialServiceTest {
         when(appConfig.getFinancial()).thenReturn(financialConfig);
         when(financialConfig.getOutputDirectory()).thenReturn(tempDir.toString());
         when(financialConfig.getMaxRecordsPerFile()).thenReturn(1000);
-        when(financialConfig.getFileNamePattern()).thenReturn("fin_orders_{datetime:ddMMyyyyHHmm}.csv");
+        when(financialConfig.getFileNamePattern()).thenReturn("fin_orders_{datetime:ddMMyyyyHHmmss}.csv");
     }
 
     @Test
@@ -71,9 +71,7 @@ class FinancialServiceTest {
 
         // let's sleep a bit, otherwise the files will have same name
         try {
-            // we sleep 1 minute, because the pattern for the file name from task requirements
-            // does not include seconds, so we should wait maximum 1 minute into the order to get a new file name for the output file
-            Thread.sleep(60000);
+            Thread.sleep(1000);
         } catch (InterruptedException ignore) {
         }
 

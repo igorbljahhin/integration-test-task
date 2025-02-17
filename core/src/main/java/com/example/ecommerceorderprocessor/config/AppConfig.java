@@ -17,7 +17,7 @@ public class AppConfig {
     @Data
     public static class Financial {
         @NotEmpty
-        private String fileNamePattern = "fin_orders_{datetime:ddMMyyyyHHmm}.csv";
+        private String fileNamePattern = "fin_orders_{datetime:ddMMyyyyHHmmss}.csv";
         @Min(1)
         private int maxRecordsPerFile = 1000;
         @NotEmpty

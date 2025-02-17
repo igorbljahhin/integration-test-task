@@ -202,9 +202,8 @@ public class FinancialService {
             if (previousFileName.equals(currentFileName)) {
                 final String msg = MessageFormat.format("Cannot continue to write orders into the financial files," +
                         " because the limit of the records in the file {0} is reached its limit of {1} records and the " +
-                        "rules for file naming are not allowing us to generate a unique file name. " +
-                        "Consider to include seconds into the pattern of the filename (controlled by configuration property " +
-                        "app.financial.file-name-pattern) or repeat the operation a bit later.", previousFileName, appConfig.getFinancial().getMaxRecordsPerFile());
+                        "rules for file naming are not allowing us to generate a unique file name. You might want to" +
+                        "repeat the operation a bit later.", previousFileName, appConfig.getFinancial().getMaxRecordsPerFile());
 
                 log.error(msg);
 
@@ -225,8 +224,8 @@ public class FinancialService {
         File currentOutputFile = resolveOutputFile();
 
         // generate records for CSV from orders
-        // NB! reserve space for same amount of records as in existing output file
         final List<FinancialOrderRecord> orderRecords = new ArrayList<>();
+        // NB! reserve space for same amount of records as in existing output file
         orderRecords.addAll(IntStream.range(0, countLines(currentOutputFile)).mapToObj(i -> (FinancialOrderRecord) null).toList());
         orderRecords.addAll(fromOrder(order));
 
