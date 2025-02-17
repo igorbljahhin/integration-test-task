@@ -46,7 +46,7 @@ class CrmServiceTest {
     @Test
     void shouldConstructCorrectCrmUrl() {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
         String expectedUrl = API_URL + "/customers/" + order.getCustomerId() + "/orders";
 
         when(restTemplate.exchange(
@@ -71,7 +71,7 @@ class CrmServiceTest {
     @Test
     void shouldCorrectlyConvertOrderToCrmRequest() {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
         ArgumentCaptor<HttpEntity<OrderUpdateRequest>> requestCaptor = ArgumentCaptor.forClass(HttpEntity.class);
 
         when(restTemplate.exchange(
@@ -105,7 +105,7 @@ class CrmServiceTest {
     @Test
     void shouldHandleFailedCrmUpdate() {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
         when(restTemplate.exchange(
                 anyString(),
                 eq(HttpMethod.PUT),
@@ -120,7 +120,7 @@ class CrmServiceTest {
     @Test
     void shouldHandleSuccessfulCrmUpdate() {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
 
         when(restTemplate.exchange(
                 anyString(),

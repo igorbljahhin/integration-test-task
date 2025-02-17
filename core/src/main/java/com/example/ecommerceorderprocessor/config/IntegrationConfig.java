@@ -1,6 +1,7 @@
 package com.example.ecommerceorderprocessor.config;
 
 import com.example.ecommerceorderprocessor.model.Order;
+import com.example.ecommerceorderprocessor.model.OrderStatusEnum;
 import com.example.ecommerceorderprocessor.service.OrderProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.integration.channel.ExecutorChannel;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.handler.LoggingHandler;
 import org.springframework.integration.store.MessageGroupStore;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.MessageChannel;
 
 import java.util.concurrent.Executors;
@@ -92,14 +94,25 @@ public class IntegrationConfig {
     @Bean
     public IntegrationFlow resequencingFlow() {
         return IntegrationFlow.from(orderInputChannel())
+                .log(LoggingHandler.Level.INFO, m -> "Before resequencing: " + m.getHeaders())
+                .transform(message -> {
+                    Order order = (Order) message;
+
+                    return MessageBuilder.withPayload(order)
+                            .setHeader("correlationId", order.getOrderId())
+                            .setHeader("sequenceNumber",
+                                    order.getStatus() == OrderStatusEnum.PENDING ? 1 : 2)
+                            .setHeader("sequenceSize", 2)
+                            .build();
+                })
                 .resequence(spec -> spec
                         .messageStore(messageStore)
-                        .correlationStrategy(orderCorrelationStrategy)
-                        .messageStore(messageStore)
+                        .correlationStrategy(message ->
+                                message.getHeaders().get("correlationId"))
                         .releasePartialSequences(true)
                         .groupTimeout(5000)
-                        .sendPartialResultOnExpiry(true)
-                )
+                        .sendPartialResultOnExpiry(true))
+                .log(LoggingHandler.Level.INFO, m -> "After resequencing: " + m.getHeaders())
                 .channel(processedOrderChannel())
                 .get();
     }

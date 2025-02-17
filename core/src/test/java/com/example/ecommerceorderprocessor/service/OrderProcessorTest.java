@@ -28,7 +28,7 @@ class OrderProcessorTest {
         OrderStatusEnum[] nonFinancialStatuses = {OrderStatusEnum.PENDING, OrderStatusEnum.UPDATED, OrderStatusEnum.CONFIRMED, OrderStatusEnum.SHIPPED};
 
         for (OrderStatusEnum status : nonFinancialStatuses) {
-            Order order = TestDataFactory.createSampleOrder(status);
+            Order order = TestDataFactory.createSampleOrder("ORD-123", status);
             orderProcessor.process(order);
             verify(financialService, never()).writeOrderToFile(order);
         }
@@ -38,7 +38,7 @@ class OrderProcessorTest {
     void shouldSendAllOrdersToCrm() {
         // Test each status
         for (OrderStatusEnum status : OrderStatusEnum.values()) {
-            Order order = TestDataFactory.createSampleOrder(status);
+            Order order = TestDataFactory.createSampleOrder("ORD-123", status);
             orderProcessor.process(order);
             verify(crmService, times(1)).sendOrderUpdate(order);
         }
@@ -46,14 +46,14 @@ class OrderProcessorTest {
 
     @Test
     void shouldSendOnlyCancelledOrdersToFinancial() {
-        Order cancelledOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.CANCELLED);
+        Order cancelledOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.CANCELLED);
         orderProcessor.process(cancelledOrder);
         verify(financialService, times(1)).writeOrderToFile(cancelledOrder);
     }
 
     @Test
     void shouldSendOnlyPaidOrdersToFinancial() {
-        Order paidOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order paidOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
         orderProcessor.process(paidOrder);
         verify(financialService, times(1)).writeOrderToFile(paidOrder);
     }

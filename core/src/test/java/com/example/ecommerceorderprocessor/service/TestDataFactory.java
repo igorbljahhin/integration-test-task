@@ -10,15 +10,15 @@ import java.util.List;
 public class TestDataFactory {
 
     public static Order createEmptyOrder(OrderStatusEnum status) {
-        Order order = createSampleOrder(status);
+        Order order = createSampleOrder("ORD-123", status);
         order.setOrderItems(List.of());
 
         return order;
     }
 
-    public static Order createSampleOrder(OrderStatusEnum status) {
+    public static Order createSampleOrder(String orderId, OrderStatusEnum status) {
         Order order = new Order();
-        order.setOrderId("ORD-123");
+        order.setOrderId(orderId);
         order.setCustomerId("CUST-456");
         order.setStatus(status);
         order.setCurrencyCode("USD");

@@ -43,8 +43,8 @@ class FinancialServiceTest {
     @Test
     void shouldAppendToExistingFile() throws IOException {
         // Prepare
-        Order firstOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
-        Order secondOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.CANCELLED);
+        Order firstOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
+        Order secondOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.CANCELLED);
 
         // Act
         financialService.writeOrderToFile(firstOrder);
@@ -63,8 +63,8 @@ class FinancialServiceTest {
     void shouldCreateNewFileWhenLimitReached() {
         // Prepare
         when(financialConfig.getMaxRecordsPerFile()).thenReturn(1);
-        Order firstOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
-        Order secondOrder = TestDataFactory.createSampleOrder(OrderStatusEnum.CANCELLED);
+        Order firstOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
+        Order secondOrder = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.CANCELLED);
 
         // Act
         financialService.writeOrderToFile(firstOrder);
@@ -86,7 +86,7 @@ class FinancialServiceTest {
     @Test
     void shouldCreateNewFileWhenNoneExists() throws IOException {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
 
         // Act
         financialService.writeOrderToFile(order);
@@ -106,7 +106,7 @@ class FinancialServiceTest {
         // Prepare
         String filePattern = "test_orders_{datetime:ddMMyyyyHHmm}.csv";
         when(financialConfig.getFileNamePattern()).thenReturn(filePattern);
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
 
         // Act
         financialService.writeOrderToFile(order);
@@ -135,7 +135,7 @@ class FinancialServiceTest {
     @Test
     void shouldHandleMultipleItemsInOrder() throws IOException {
         // Prepare
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
         order.setOrderItems(List.of(
                 TestDataFactory.createSampleOrderItem(),
                 TestDataFactory.createSampleOrderItem()
@@ -157,7 +157,7 @@ class FinancialServiceTest {
     void shouldHandleNonExistentOutputDirectory() {
         // Prepare
         when(financialConfig.getOutputDirectory()).thenReturn(tempDir.resolve("nonexistent").toString());
-        Order order = TestDataFactory.createSampleOrder(OrderStatusEnum.PAID);
+        Order order = TestDataFactory.createSampleOrder("ORD-123", OrderStatusEnum.PAID);
 
         // Act & Assert
         assertDoesNotThrow(() -> financialService.writeOrderToFile(order));
