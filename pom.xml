@@ -11,13 +11,13 @@
     <artifactId>ecommerce-order-processor-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <properties>
-        <java.version>21</java.version>
-    </properties>
     <modules>
         <module>crm-api</module>
         <module>core</module>
     </modules>
+    <properties>
+        <java.version>21</java.version>
+    </properties>
     <build>
         <plugins>
             <plugin>

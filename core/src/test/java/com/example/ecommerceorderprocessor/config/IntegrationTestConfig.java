@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Bean;
 
 @TestConfiguration
 public class IntegrationTestConfig {
-
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         RabbitAdmin admin = new RabbitAdmin(connectionFactory);

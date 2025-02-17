@@ -89,7 +89,7 @@ public class FinancialService {
     private static void writeChuckToFile(List<FinancialOrderRecord> chunk, File currentOutputFile) throws IOException, CsvDataTypeMismatchException, CsvRequiredFieldEmptyException {
         final List<FinancialOrderRecord> records = chunk.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
-        log.info("Writing {} records into the financial output file {}", records.size(), currentOutputFile);
+        log.debug("Writing {} records into the financial output file {}", records.size(), currentOutputFile);
 
         final String[] columns = {"order_id", "product_name", "product_id", "quantity", "product_price", "order_total", "order_paid_amount", "currency_code"};
 
@@ -165,11 +165,11 @@ public class FinancialService {
         if (recentlyModifiedFile != null) {
             currentFileName = recentlyModifiedFile.getName();
 
-            log.info("Attempt to continue writing into recently modified financial output file {}", currentFileName);
+            log.debug("Attempt to continue writing into recently modified financial output file {}", currentFileName);
         } else {
             currentFileName = generateOutputFileName();
 
-            log.info("Writing into the new financial output file {}", currentFileName);
+            log.debug("Writing into the new financial output file {}", currentFileName);
         }
 
         return currentFileName;
@@ -186,7 +186,7 @@ public class FinancialService {
             if (f.exists()) {
                 lines = countLines(f);
 
-                log.info("The financial output file {} has {} lines", currentFileName, lines);
+                log.debug("The financial output file {} has {} lines", currentFileName, lines);
             }
         } catch (IOException e) {
             currentFileName = generateOutputFileName();
@@ -209,7 +209,7 @@ public class FinancialService {
 
                 throw new IllegalStateException(msg);
             } else {
-                log.info("Limit of the lines is reached in the file {}, let's start using a new file {}", previousFileName, currentFileName);
+                log.debug("Limit of the lines is reached in the file {}, let's start using a new file {}", previousFileName, currentFileName);
             }
         }
 
